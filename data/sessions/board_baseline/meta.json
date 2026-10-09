@@ -1,0 +1,15 @@
+{
+  "port": "/dev/cu.usbserial-0001",
+  "baud": 115200,
+  "out": "data/sessions/board_baseline/scans.jsonl",
+  "scans": 6,
+  "pk": 0,
+  "duration_s": 15.4,
+  "x": null,
+  "y": null,
+  "label": null,
+  "sniff": null,
+  "period": null,
+  "rate": null,
+  "boot": null
+}

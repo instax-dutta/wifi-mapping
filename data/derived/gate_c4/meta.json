@@ -1,0 +1,15 @@
+{
+  "port": "/dev/cu.usbserial-0001",
+  "baud": 115200,
+  "out": "../data/derived/gate_c4/scans.jsonl",
+  "scans": 4,
+  "pk": 0,
+  "duration_s": 11.0,
+  "x": null,
+  "y": null,
+  "label": null,
+  "sniff": null,
+  "period": null,
+  "rate": null,
+  "boot": null
+}

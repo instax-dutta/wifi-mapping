@@ -1,0 +1,101 @@
+{
+  "session": "../data/derived/gate_c6/sim",
+  "samples": 64,
+  "unique_aps": 4,
+  "sniff_frames": 0,
+  "boot": null,
+  "ap_stats": [
+    {
+      "bssid": "aa:bb:cc:00:00:00",
+      "ssid": "AP0",
+      "channel": 6,
+      "n": 64,
+      "median": -50.5,
+      "min": -67,
+      "max": -22,
+      "jitter": 45.0
+    },
+    {
+      "bssid": "aa:bb:cc:00:00:01",
+      "ssid": "AP1",
+      "channel": 11,
+      "n": 64,
+      "median": -51.0,
+      "min": -66,
+      "max": -22,
+      "jitter": 44.0
+    },
+    {
+      "bssid": "aa:bb:cc:00:00:02",
+      "ssid": "AP2",
+      "channel": 6,
+      "n": 64,
+      "median": -47.0,
+      "min": -71,
+      "max": -24,
+      "jitter": 47.0
+    },
+    {
+      "bssid": "aa:bb:cc:00:00:03",
+      "ssid": "AP3",
+      "channel": 11,
+      "n": 64,
+      "median": -49.0,
+      "min": -68,
+      "max": -24,
+      "jitter": 44.0
+    }
+  ],
+  "ap_count": 4,
+  "k_walls": {
+    "bssid": "aa:bb:cc:00:00:00",
+    "thresholds": [
+      -36.525,
+      -46.517307692307696,
+      -55.61538461538461
+    ],
+    "k_histogram": [
+      5,
+      20,
+      13,
+      26
+    ]
+  },
+  "path_loss_fits": {
+    "aa:bb:cc:00:00:00": {
+      "p0": -29.068252422019096,
+      "n": 3.486296533077031,
+      "n_samples": 64
+    },
+    "aa:bb:cc:00:00:01": {
+      "p0": -27.033290450315693,
+      "n": 3.805635459391927,
+      "n_samples": 64
+    },
+    "aa:bb:cc:00:00:02": {
+      "p0": -25.93511114160356,
+      "n": 3.6127940855210796,
+      "n_samples": 64
+    },
+    "aa:bb:cc:00:00:03": {
+      "p0": -29.071940898598665,
+      "n": 3.12420479962361,
+      "n_samples": 64
+    }
+  },
+  "path_loss_n_mean": 3.507232719403412,
+  "localization": {
+    "k": 3,
+    "median_m": 0.9484087779636239,
+    "mean_m": 1.0312067669527103,
+    "p90_m": 1.719258690559021,
+    "max_m": 3.2662048602635765,
+    "n": 64
+  },
+  "figures": [
+    "aabbcc000000.png",
+    "aabbcc000001.png",
+    "aabbcc000002.png",
+    "aabbcc000003.png"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "port": "/dev/cu.usbserial-0001",
+  "baud": 115200,
+  "out": "../data/derived/gate_c8/sniff.jsonl",
+  "scans": 0,
+  "pk": 40,
+  "duration_s": 8.2,
+  "x": null,
+  "y": null,
+  "label": null,
+  "sniff": "52:02:91:DA:F8:B1",
+  "period": null,
+  "rate": null,
+  "boot": null
+}

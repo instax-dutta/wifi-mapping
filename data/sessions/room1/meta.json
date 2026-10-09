@@ -1,0 +1,15 @@
+{
+  "port": "/dev/cu.usbserial-0001",
+  "baud": 115200,
+  "out": "data/sessions/room1/p_0_0.jsonl",
+  "scans": 4,
+  "pk": 0,
+  "duration_s": 11.0,
+  "x": 0.0,
+  "y": 0.0,
+  "label": null,
+  "sniff": null,
+  "period": 800,
+  "rate": null,
+  "boot": null
+}

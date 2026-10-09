@@ -1,0 +1,24 @@
+# host / python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# arduino build artifacts
+build/
+*.bin
+*.elf
+
+# data (raw + derived are regenerable / large)
+data/**/*.jsonl
+data/**/*.png
+data/**/*.csv
+data/**/*.npz
+!data/**/.gitkeep
+
+# unlazy / editor / os
+.unlazy/
+.unlazy-hook-state.json
+.claude/settings.local.json
+.DS_Store
