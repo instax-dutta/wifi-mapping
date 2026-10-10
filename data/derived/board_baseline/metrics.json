@@ -1,5 +1,5 @@
 {
-  "session": "data/sessions/board_baseline/scans.jsonl",
+  "session": "data/sessions/board_baseline",
   "samples": 6,
   "unique_aps": 1,
   "sniff_frames": 0,

@@ -52,9 +52,9 @@ RSSI heatmaps (left: reference beacon, right: a home router):
 
 | mq-ref | home-router |
 | --- | --- |
-| ![mq-ref](docs/figures/heatmap_mq_ref.png) | ![home router](docs/figures/heatmap_home-router.png) |
+| ![mq-ref](docs/figures/heatmap_mq_ref.png) | ![home router](docs/figures/heatmap_home_router.png) |
 
-Full interactive report: [`docs/figures/room1_report.html`](docs/figures/room1_report.html).
+(The `home-router` SSID and BSSID are anonymised.)
 
 ## How it works
 
