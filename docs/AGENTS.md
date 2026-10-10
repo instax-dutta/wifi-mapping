@@ -10,6 +10,7 @@ Durable project documentation for the WiFi radio-mapping project.
 - `docs/research.md` - prior-art survey with sources.
 - `docs/architecture.md` - system design, serial protocol, phase plan, limitations.
 - `docs/results.md` - measured results with provenance, updated per experiment.
+- `docs/tech-transfer.md` - what to borrow from ruvnet/RuView and what does not apply.
 - `docs/figures/` - tracked experiment figures (heatmaps, localization, HTML report) shown in the README.
 
 ## Local Contracts
