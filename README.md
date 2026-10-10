@@ -42,6 +42,28 @@ PYTHONPATH=host .venv/bin/python -m wifi_map.simulate --out data/derived/sim --p
 PYTHONPATH=host .venv/bin/python -m wifi_map.analyze  --session data/derived/sim
 ```
 
+## Survey a room
+
+Board B (`ref_beacon`) is the origin; carry Board A (tethered) to each point and
+capture. One command per point, with live feedback:
+
+```bash
+PYTHONPATH=host .venv/bin/python -m wifi_map.point 1 0   # at grid point (1,0)
+```
+
+Then analyze against B's known position and render a report:
+
+```bash
+PYTHONPATH=host .venv/bin/python -m wifi_map.analyze \
+  --session data/sessions/room1 --ref 52:02:91:DA:F8:B1,0,0
+PYTHONPATH=host .venv/bin/python -m wifi_map.report --dir data/derived/room1
+open data/derived/room1/report.html
+```
+
+First real grid result: fingerprint localization median 0.16 tiles, but a very
+low path-loss exponent (n = 0.77) - RSSI here is dominated by obstacles, not
+distance. Full numbers in `docs/results.md`.
+
 ## Board
 
 ESP8266EX, 4 MB flash, CP2102 bridge on `/dev/cu.usbserial-0001`, MAC

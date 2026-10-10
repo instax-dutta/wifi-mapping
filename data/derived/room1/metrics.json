@@ -1,0 +1,64 @@
+{
+  "session": "data/sessions/room1",
+  "samples": 44,
+  "unique_aps": 2,
+  "sniff_frames": 0,
+  "boot": null,
+  "ap_stats": [
+    {
+      "bssid": "52:02:91:DA:F8:B1",
+      "ssid": "mq-ref",
+      "channel": 6,
+      "n": 44,
+      "median": -70.0,
+      "min": -86,
+      "max": -57,
+      "jitter": 29.0
+    },
+    {
+      "bssid": "AA:BB:CC:00:00:0E",
+      "ssid": "home-router",
+      "channel": 11,
+      "n": 44,
+      "median": -66.0,
+      "min": -76,
+      "max": -56,
+      "jitter": 20.0
+    }
+  ],
+  "ap_count": 2,
+  "k_walls": {
+    "bssid": "52:02:91:DA:F8:B1",
+    "thresholds": [
+      -61.9375,
+      -67.67613636363637,
+      -74.96363636363637
+    ],
+    "k_histogram": [
+      4,
+      8,
+      22,
+      10
+    ]
+  },
+  "path_loss_fits": {
+    "52:02:91:DA:F8:B1": {
+      "p0": -68.0847151300452,
+      "n": 0.7729624580470529,
+      "n_samples": 44
+    }
+  },
+  "path_loss_n_mean": 0.7729624580470529,
+  "localization": {
+    "k": 3,
+    "median_m": 0.16000394152662578,
+    "mean_m": 0.443249204306777,
+    "p90_m": 1.4129701467521663,
+    "max_m": 2.23606797749979,
+    "n": 44
+  },
+  "figures": [
+    "AABBCC00000E.png",
+    "520291DAF8B1.png"
+  ]
+}

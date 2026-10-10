@@ -15,6 +15,7 @@ data/**/*.jsonl
 data/**/*.png
 data/**/*.csv
 data/**/*.npz
+data/**/*.html
 !data/**/.gitkeep
 
 # unlazy / editor / os

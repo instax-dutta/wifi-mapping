@@ -34,6 +34,42 @@ The path-loss fit on synthetic data recovered exponent n = 3.5 against a
 generated truth of n = 2.6; the gap is the 9 dB wall term the fit cannot see.
 That is expected and is exactly why geometry needs the k-wall step.
 
+## Room survey (2026-10-10)
+
+First real fingerprint grid. Board B (`mq-ref`) at a floor-tile intersection =
+origin `(0,0)`; Board A carried point by point. Coordinates are **tile units**
+(the path-loss exponent is scale-invariant, so tiles are fine; P0 is referenced
+to 1 tile). 11 points, x in 0..3, y in 0..2 (origin omitted).
+
+`mq-ref` median RSSI per point (dBm):
+
+| y\x | 0 | 1 | 2 | 3 |
+| --- | --- | --- | --- | --- |
+| 0 | - | -60 | -64 | -66 |
+| 1 | -71 | -81 | -68 | -79 |
+| 2 | -73 | -72 | -70 | -74 |
+
+Findings:
+
+- **Fingerprint localization works**: kNN leave-one-out median error 0.16 tiles,
+  p90 1.41, max 2.24 (a small, well-separated grid, so this is optimistic).
+- **Pure distance ranging does not**: the fitted path-loss exponent is **n = 0.77**
+  (P0 = -68 dBm at 1 tile). Real indoor n is 2-4; 0.77 means RSSI here is
+  dominated by direction/obstacles, not distance. Same-distance points differ by
+  up to ~11 dB (e.g. `(1,0)` = -60 vs `(0,1)` = -71; `(1,1)` = -81).
+- **Shadowing is real and local**: `(3,1)` and `(1,1)` are deep fades (-79/-81)
+  relative to neighbours - exactly the structure the k-wall/geometry step wants.
+- **k-wall thresholds** for `mq-ref`: [-61.9, -67.7, -75.0] dBm; k-histogram
+  [4, 8, 22, 10] over the 44 samples. This is a coarse proxy, not literal wall
+  counts, until it is combined with a trajectory.
+
+Artifacts: `data/derived/room1/report.html` (self-contained report with heatmaps
+and the localization figure), `data/derived/room1/metrics.json`.
+
+Provenance: `wifi_map.point X Y` per point (10 s, period 800 ms), then
+`wifi_map.analyze --session data/sessions/room1 --ref 52:02:91:DA:F8:B1,0,0`,
+then `wifi_map.report --dir data/derived/room1`.
+
 ## Provenance
 
 - Board identity: `.venv/bin/esptool --port /dev/cu.usbserial-0001 flash-id`.
