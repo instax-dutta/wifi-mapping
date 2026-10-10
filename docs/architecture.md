@@ -34,6 +34,15 @@ Board B gives the sensor a transmitter at a **known position**, which is what
 makes path-loss fitting and the k-wall geometry tractable. Ambient APs are still
 scanned alongside it.
 
+## Live path (v0.2)
+
+The board mirrors each frame over UDP (`join` + `udp` commands), so it runs
+untethered on a power bank. `wifi_map.server` ingests UDP or serial, keeps a
+rolling window, localizes with `wifi_map.index`, scores motion with
+`wifi_map.features`, flags map drift with `wifi_map.envmap`, and serves the
+`web/` dashboard plus `GET /events` (SSE) and `GET /api/state`. Optional MQTT via
+`wifi_map.mqtt`. Decisions: ADRs 0001-0008 in `docs/adr/`.
+
 ## Serial protocol v1 (line-delimited JSON)
 
 Firmware prints one JSON object per `\n`. Host sends plain-text command lines.

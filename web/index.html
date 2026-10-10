@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WiFi Map - live localization</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <div>
+        <h1>WiFi Map</h1>
+        <p class="sub">RSSI localization &middot; ESP8266 &middot; live</p>
+      </div>
+    </div>
+    <div class="chips" role="status" aria-live="polite">
+      <span class="chip" id="status-link"><i class="dot"></i><span class="label">link</span><b id="link-text">waiting</b></span>
+      <span class="chip" id="status-motion"><i class="dot"></i><span class="label">motion</span><b id="motion-chip">low</b></span>
+      <span class="chip" id="status-map"><i class="dot"></i><span class="label">map</span><b id="map-chip">fresh</b></span>
+      <span class="chip" id="status-samples"><i class="dot"></i><span class="label">samples</span><b id="samples-text">0</b></span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <section class="stage" aria-label="Live position">
+      <div class="frame">
+        <div class="ticks" aria-hidden="true"></div>
+        <svg id="map" viewBox="0 0 1000 720" preserveAspectRatio="xMidYMid meet" role="img"
+             aria-label="Room grid with estimated position"></svg>
+        <div class="overlay" id="overlay">
+          <div class="overlay-card">
+            <span class="spin" aria-hidden="true"></span>
+            <p><b>Waiting for signal</b></p>
+            <p class="hint">Start <code>wifi_map.server</code> and power the sensor, or send a scan.</p>
+          </div>
+        </div>
+        <div class="readout">
+          <div class="ro"><span class="k">x</span><b id="pos-x">--</b></div>
+          <div class="ro"><span class="k">y</span><b id="pos-y">--</b></div>
+          <div class="ro"><span class="k">nearest</span><b id="pos-err">--</b></div>
+          <div class="ro"><span class="k">units</span><b>tiles</b></div>
+        </div>
+      </div>
+      <p class="legend">
+        <span class="lg"><i class="sw beacon"></i>reference AP</span>
+        <span class="lg"><i class="sw pos"></i>estimated position</span>
+        <span class="lg"><i class="sw trail"></i>trail</span>
+      </p>
+    </section>
+
+    <aside class="panel" aria-label="Signals and state">
+      <div class="block">
+        <h2>Access points</h2>
+        <ul class="aps" id="aps"></ul>
+      </div>
+
+      <div class="block meters">
+        <h2>State</h2>
+        <div class="meter">
+          <div class="meter-head"><span>motion</span><b id="motion-score">0.0</b></div>
+          <div class="track"><i id="motion-bar"></i></div>
+          <div class="meter-foot"><span id="motion-level">low</span><span>dB&sup2; variance</span></div>
+        </div>
+        <div class="meter">
+          <div class="meter-head"><span>environment drift</span><b id="env-drift">0.0</b></div>
+          <div class="track"><i id="env-bar"></i></div>
+          <div class="meter-foot"><span id="env-state">fresh</span><span>vs survey baseline</span></div>
+        </div>
+      </div>
+
+      <div class="block meta">
+        <h2>Session</h2>
+        <dl>
+          <div><dt>source</dt><dd id="meta-source">udp</dd></div>
+          <div><dt>last tick</dt><dd id="meta-tick">--</dd></div>
+          <div><dt>aps</dt><dd id="meta-aps">0</dd></div>
+        </dl>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <span>wifi-mapping</span>
+    <span>RSSI only &middot; no camera &middot; no lidar</span>
+    <span id="foot-conn">--</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

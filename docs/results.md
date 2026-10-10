@@ -70,6 +70,22 @@ Provenance: `wifi_map.point X Y` per point (10 s, period 800 ms), then
 `wifi_map.analyze --session data/sessions/room1 --ref 52:02:91:DA:F8:B1,0,0`,
 then `wifi_map.report --dir data/derived/room1`.
 
+## Live system (v0.2, 2026-10-10)
+
+Built the RuView-inspired transfers adapted to RSSI (see `docs/tech-transfer.md`):
+UDP streaming firmware, a standard-library live server (SSE + `/api/state`) with
+live fingerprint localization, motion/presence from RSSI variance,
+environment-drift detection, an optional fingerprint index (hnswlib) and MQTT
+publisher, a redesigned instrument-panel dashboard (`web/`), ADRs, and a
+deterministic golden fixture.
+
+Verified: 13 host tests pass; the golden fixture reproduces its reference; the
+impeccable detector reports 0 findings on the UI; the end-to-end gate
+(UDP -> server -> SSE -> position/motion) passes against the golden fixture.
+Ledger: `.unlazy/wifimap-v2/` (untracked working state). One handoff: the on-air
+UDP test (board -> laptop over a real network) needs a network choice and has not
+been run.
+
 ## Provenance
 
 - Board identity: `.venv/bin/esptool --port /dev/cu.usbserial-0001 flash-id`.

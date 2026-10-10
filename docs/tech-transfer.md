@@ -34,6 +34,11 @@ for now.
 | T7 | **MQTT integration** (HA-DISCO, Mosquitto) | Clean hook for the future robot/controller and home automation. | Low |
 | T8 | **Deterministic golden test** (their `verify.py` reference signal) | A reference fixture that proves our pipeline did not regress. | Low |
 
+**Status (2026-10-10):** T1-T8 are built and gated (`.unlazy/wifimap-v2/`),
+adapted to RSSI. T1 (UDP) and T2/T3 (server + dashboard + motion) are the
+headline; T5 ADRs live in `docs/adr/`, and the capability matrix in
+`docs/capability-matrix.md`.
+
 ## What is NOT transferable
 
 - CSI pipeline: phase sanitization, subcarrier fusion, multistatic

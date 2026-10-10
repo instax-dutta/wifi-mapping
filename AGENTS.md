@@ -85,5 +85,6 @@ Default section order:
 
 - `docs/AGENTS.md` - durable project documentation: measured hardware profile, prior-art survey, architecture and the serial protocol.
 - `firmware/AGENTS.md` - the ESP8266 Arduino sensor firmware and its wire contract.
-- `host/AGENTS.md` - the Python capture and analysis package.
+- `host/AGENTS.md` - the Python capture, live-server, and analysis package.
+- `web/AGENTS.md` - the live dashboard UI served by the server.
 - `tools/AGENTS.md` - build/flash helpers and the unlazy gate checks.

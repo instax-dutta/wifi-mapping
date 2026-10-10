@@ -1,0 +1,10 @@
+{
+  "samples": 16,
+  "aps": 4,
+  "localization_median": 1.771933,
+  "query0_xy": [
+    0.5,
+    0.5
+  ],
+  "query0_err": 0.0
+}

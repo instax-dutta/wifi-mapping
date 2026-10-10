@@ -54,6 +54,31 @@ RSSI heatmaps (left: reference beacon, right: a home router):
 | --- | --- |
 | ![mq-ref](docs/figures/heatmap_mq_ref.png) | ![home router](docs/figures/heatmap_home_router.png) |
 
+## Live dashboard (untethered)
+
+The board can mirror every frame over UDP, so it roams on a power bank while the
+laptop listens. A standard-library server ingests the stream and serves a live
+dashboard plus a small API:
+
+```bash
+# flash the sensor (adds `join` and `udp` commands)
+./tools/flash.sh /dev/cu.usbserial-0001 firmware/wifi_mapper
+
+# over serial, point the board at a network and a listener:
+#   join <ssid> <password>
+#   udp <host-or-broadcast-ip> 5005
+
+# run the server, localizing against a surveyed session
+PYTHONPATH=host .venv/bin/python -m wifi_map.server \
+  --session data/sessions/room1 --source udp --udp-port 5005 --port 3000
+open http://localhost:3000
+```
+
+The dashboard (instrument-panel design, `docs/adr/0008`) shows the estimated
+position and trail on the room grid, per-AP RSSI, a motion meter, and an
+environment-drift indicator. Endpoints: `GET /api/state`, `GET /events` (SSE),
+`GET /api/health`. Optional MQTT publish with `--mqtt <broker-host>`.
+
 ## How it works
 
 ```
@@ -78,11 +103,12 @@ Board B: ref_beacon (fixed AP)          Board A: wifi_mapper (sensor)      Lapto
 
 ## Repository layout
 
-- `docs/` - hardware profile, prior-art survey, architecture + serial protocol, measured results.
-- `firmware/` - Arduino sketches: `wifi_mapper` (sensor) and `ref_beacon` (reference AP).
-- `host/wifi_map/` - Python package: `capture`, `point`, `sessions`, `analyze`, `geometry`, `simulate`, `report`.
+- `docs/` - hardware profile, prior-art survey, architecture + serial protocol, measured results, capability matrix, ADRs.
+- `firmware/` - Arduino sketches: `wifi_mapper` (sensor, scan/sniff/UDP) and `ref_beacon` (reference AP).
+- `host/wifi_map/` - Python package: batch (`capture`, `point`, `analyze`, `geometry`, `simulate`, `report`) and live (`stream`, `server`, `index`, `features`, `envmap`, `mqtt`).
+- `web/` - the live dashboard (plain HTML/CSS/JS, no build step).
 - `tools/` - flash helper and the unlazy gate checks.
-- `GATES.md` - the completion ledger (all gates met on real hardware).
+- `GATES.md`, `.unlazy/wifimap-v2/` - completion ledgers.
 
 ## Reproduce
 

@@ -25,6 +25,10 @@ outcomes.
 
 - Keep checks deterministic and avoid network access.
 - Hardware checks should skip-with-failure, never hang: use timeouts.
+- Live checks (`c10-server`, `c12-ui`, `c15-integration`) start
+  `host/wifi_map.server` on test ports (3987-3989) and must kill it in a
+  `finally`. If a run leaves a stale server bound to a port, the next run fails
+  with "address already in use": `pkill -f wifi_map.server` and re-run.
 
 ## Verification
 

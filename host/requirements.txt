@@ -1,3 +1,5 @@
 pyserial>=3.5
 numpy>=1.24
 matplotlib>=3.7
+pytest>=7.0
+# optional (graceful if absent): hnswlib (fast fingerprint index), paho-mqtt (publish)

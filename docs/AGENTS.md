@@ -11,6 +11,8 @@ Durable project documentation for the WiFi radio-mapping project.
 - `docs/architecture.md` - system design, serial protocol, phase plan, limitations.
 - `docs/results.md` - measured results with provenance, updated per experiment.
 - `docs/tech-transfer.md` - what to borrow from ruvnet/RuView and what does not apply.
+- `docs/capability-matrix.md` - honest RSSI-vs-CSI capability table.
+- `docs/adr/` - architecture decision records (UDP, SSE server, index, motion, envmap, MQTT, UI).
 - `docs/figures/` - tracked experiment figures (heatmaps, localization, HTML report) shown in the README.
 
 ## Local Contracts
