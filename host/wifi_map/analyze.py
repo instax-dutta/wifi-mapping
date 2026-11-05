@@ -3,6 +3,7 @@
 Usage (from host/):
     python -m wifi_map.analyze --session ../data/sessions/walk1
     python -m wifi_map.analyze --session ../data/derived/sim --out ../data/derived/sim_report
+    python -m wifi_map.analyze --session data/sessions/room1 --ref BSSID,X,Y --out data/derived/room1 --occupancy
 """
 
 from __future__ import annotations
@@ -18,16 +19,28 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+from .features import sliding_median_filter  # noqa: E402
 from .geometry import assign_k, fit_path_loss, k_thresholds  # noqa: E402
-from .sessions import MISSING_RSSI, ap_stats, ap_table, labels, load_session  # noqa: E402
+from .index import exponential_transform, spearman_distance  # noqa: E402
+from .occupancy import run_occupancy  # noqa: E402
+from .sessions import MISSING_RSSI, ap_stats, ap_table, filter_strongest, labels, load_session  # noqa: E402
 
 
-def knn_loo(X: np.ndarray, pos: np.ndarray, k: int = 3) -> np.ndarray:
-    """Leave-one-out kNN prediction. X: [n x features], pos: [n x 2]."""
+def knn_loo(X: np.ndarray, pos: np.ndarray, k: int = 3,
+            distance: str = "euclidean") -> np.ndarray:
+    """Leave-one-out kNN prediction. X: [n x features], pos: [n x 2].
+
+    distance: "euclidean" (default) or "spearman". With "spearman" the
+    exponential transform is applied before computing distances."""
     n = X.shape[0]
     pred = np.full_like(pos, np.nan, dtype=float)
     for i in range(n):
-        d = np.linalg.norm(X - X[i], axis=1)
+        if distance == "spearman":
+            vt = exponential_transform(X[i])
+            Xt = exponential_transform(X)
+            d = np.array([spearman_distance(vt, x) for x in Xt])
+        else:
+            d = np.linalg.norm(X - X[i], axis=1)
         d[i] = np.inf
         kk = min(k, n - 1)
         if kk < 1:
@@ -78,7 +91,10 @@ def render_heatmaps(xs, ys, X, bssids, M, out_dir: Path, top: int = 6) -> List[s
 
 
 def analyze(session: str, out_dir: Optional[Path] = None, k: int = 3,
-            ref: Optional[Tuple[str, float, float]] = None) -> Dict:
+            ref: Optional[Tuple[str, float, float]] = None,
+            distance: str = "euclidean", median_filter: bool = False,
+            keep_aps: Optional[int] = None,
+            occupancy: bool = False, resolution: float = 0.5) -> Dict:
     data = load_session(session)
     scans = data["scans"]
     meta = data.get("meta", {})
@@ -96,6 +112,12 @@ def analyze(session: str, out_dir: Optional[Path] = None, k: int = 3,
     bssids, X, M = ap_table(scans)
     xs, ys, labeled = labels(scans)
     stats = ap_stats(scans)
+
+    if median_filter:
+        X = sliding_median_filter(X)
+    if keep_aps is not None:
+        scans = filter_strongest(scans, n=keep_aps)
+        bssids, X, M = ap_table(scans)
 
     result: Dict = {
         "session": str(data["path"]),
@@ -140,7 +162,7 @@ def analyze(session: str, out_dir: Optional[Path] = None, k: int = 3,
         pos = np.stack([xs, ys], axis=1)
         good = np.isfinite(pos).all(axis=1)
         Xg, posg = X[good], pos[good]
-        pred = knn_loo(Xg, posg, k=k)
+        pred = knn_loo(Xg, posg, k=k, distance=distance)
         result["localization"] = {"k": k, **error_stats(pred, posg)}
         result["figures"] = render_heatmaps(xs, ys, X, bssids, M, out_dir / "heatmaps")
         # predicted vs true overview
@@ -170,6 +192,24 @@ def analyze(session: str, out_dir: Optional[Path] = None, k: int = 3,
         plt.close(fig)
         result["figures"] = ["rssi_by_ap.png"]
 
+    # Phase 3 P2 Geometry: coarse occupancy grid via sparse inverse k-visibility.
+    if occupancy and ref and labeled:
+        try:
+            occ_meta = run_occupancy(
+                str(data["path"]), ref, out_dir / "occupancy",
+                resolution=resolution,
+            )
+            result["occupancy"] = {
+                "out_dir": str(out_dir / "occupancy"),
+                "n_free": occ_meta["n_free"],
+                "n_occupied": occ_meta["n_occupied"],
+                "n_unknown": occ_meta["n_unknown"],
+                "grid_shape": occ_meta["grid_shape"],
+                "resolution": occ_meta["resolution"],
+            }
+        except Exception as exc:  # occupancy is best-effort; never fail analysis
+            result["occupancy_error"] = str(exc)
+
     (out_dir / "metrics.json").write_text(json.dumps(result, indent=2, default=float))
 
     if "localization" in result:
@@ -190,12 +230,26 @@ def main(argv=None) -> int:
     p.add_argument("--k", type=int, default=3, help="kNN neighbours for LOO")
     p.add_argument("--ref", default=None,
                    help="known reference transmitter position: BSSID,X,Y (room metres)")
+    p.add_argument("--distance", choices=["euclidean", "spearman"], default="euclidean",
+                   help="distance metric for kNN (default: euclidean)")
+    p.add_argument("--median-filter", action="store_true",
+                   help="apply sliding median filter before analysis")
+    p.add_argument("--keep-aps", type=int, default=None,
+                   help="keep only N strongest APs per fingerprint")
+    p.add_argument("--occupancy", action="store_true",
+                   help="build coarse occupancy grid via sparse inverse k-visibility "
+                        "(requires labeled scans and --ref)")
+    p.add_argument("--resolution", type=float, default=0.5,
+                   help="occupancy grid resolution in metres per cell (default: 0.5)")
     args = p.parse_args(argv)
     ref = None
     if args.ref:
         b, xs, ys = args.ref.split(",")
         ref = (b.strip(), float(xs), float(ys))
-    analyze(args.session, Path(args.out) if args.out else None, k=args.k, ref=ref)
+    analyze(args.session, Path(args.out) if args.out else None, k=args.k, ref=ref,
+            distance=args.distance, median_filter=args.median_filter,
+            keep_aps=args.keep_aps, occupancy=args.occupancy,
+            resolution=args.resolution)
     return 0
 
 

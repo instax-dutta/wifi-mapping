@@ -25,10 +25,13 @@
 
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
+#include <LittleFS.h>
 #include "user_interface.h"
 
 #define FW_NAME    "wifi-mapper"
 #define FW_VERSION "0.2.0"
+
+#define LOG_MAX_BYTES (256 * 1024)
 
 // ---------- state ----------
 static bool          scanning     = true;
@@ -43,6 +46,13 @@ static unsigned long lastEmitMs   = 0;
 
 static uint32_t      seq = 0;
 static String        cmdBuf;
+
+// ---------- flash logging (LittleFS) ----------
+static const char *LOG_PATH = "/scan.log";
+static bool          logging = false;
+static File          logFile;
+static unsigned long logStartMs = 0;
+static uint32_t      logCount = 0;
 
 // ---------- UDP ----------
 static WiFiUDP   udp;
@@ -119,6 +129,43 @@ static void heartbeat() {
   digitalWrite(LED_BUILTIN, on ? LOW : HIGH);
 }
 
+// ---------- flash logging ----------
+static void logStop() {
+  if (logFile) { logFile.close(); logFile = File(); }
+  logging = false;
+}
+
+static void logAppend(const String &line) {
+  if (!logging) return;
+  if (!logFile) {
+    logFile = LittleFS.open(LOG_PATH, "a");
+    if (!logFile) {
+      logging = false;
+      emitLine("{\"t\":\"err\",\"msg\":\"log open fail\"}");
+      return;
+    }
+  }
+  if (logFile.size() + line.length() + 1 > LOG_MAX_BYTES) {
+    logStop();
+    emitLine(String("{\"t\":\"err\",\"msg\":\"log full\",\"bytes\":") + logFile.size() + "}");
+    return;
+  }
+  logFile.println(line);
+  logCount++;
+}
+
+static void logStatus() {
+  (void)LittleFS.begin();
+  uint32_t bytes = 0;
+  File f = LittleFS.open(LOG_PATH, "r");
+  if (f) { bytes = (uint32_t)f.size(); f.close(); }
+  String out = "{\"t\":\"info\",\"log\":"; out += (logging ? 1 : 0);
+  out += ",\"log_count\":"; out += logCount;
+  out += ",\"log_bytes\":"; out += bytes;
+  out += ",\"log_path\":\""; out += LOG_PATH; out += "\"}";
+  emitLine(out);
+}
+
 // ---------- scanning ----------
 static void doScan() {
   heartbeat();
@@ -143,6 +190,7 @@ static void doScan() {
   }
   out += "]}";
   emitLine(out);
+  logAppend(out);
 }
 
 // ---------- sniffing ----------
@@ -184,6 +232,7 @@ static void drainSniff() {
   out += ",\"c\":"; out += sniffChannel;
   out += ",\"len\":"; out += len; out += '}';
   emitLine(out);
+  logAppend(out);
 }
 
 // ---------- commands ----------
@@ -200,6 +249,7 @@ static void printInfo() {
   out += ",\"wifi\":\""; out += (WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : String(""));
   out += "\"}";
   emitLine(out);
+  logStatus();
 }
 
 static void handleCommand(String cmd) {
@@ -268,6 +318,36 @@ static void handleCommand(String cmd) {
     emitLine(String("{\"t\":\"ack\",\"cmd\":\"sniff\",\"channel\":") + ch + "}");
     return;
   }
+  if (c == "log off") { logStop(); emitLine("{\"t\":\"ack\",\"cmd\":\"log off\"}"); return; }
+  if (c == "log clear") { logStop(); LittleFS.remove(LOG_PATH); logCount = 0; emitLine("{\"t\":\"ack\",\"cmd\":\"log clear\"}"); return; }
+  if (c == "log status") { logStatus(); return; }
+  if (c == "log on") {
+    if (!LittleFS.begin()) { emitLine("{\"t\":\"err\",\"msg\":\"littlefs fail\"}"); return; }
+    logStop();
+    logFile = LittleFS.open(LOG_PATH, "a");
+    if (!logFile) { logging = false; emitLine("{\"t\":\"err\",\"msg\":\"log open fail\"}"); return; }
+    logging = true;
+    logStartMs = millis();
+    logCount = 0;
+    emitLine(String("{\"t\":\"ack\",\"cmd\":\"log on\",\"path\":\"") + LOG_PATH + "\"}");
+    return;
+  }
+  if (c == "dump") {
+    if (!LittleFS.begin()) { emitLine("{\"t\":\"err\",\"msg\":\"littlefs fail\"}"); return; }
+    File f = LittleFS.open(LOG_PATH, "r");
+    if (!f) { emitLine("{\"t\":\"ack\",\"cmd\":\"dump\",\"count\":0}"); return; }
+    uint32_t count = 0;
+    while (f.available()) {
+      String line = f.readStringUntil('\n');
+      line.trim();
+      if (line.length() == 0) continue;
+      Serial.println(line);
+      count++;
+    }
+    f.close();
+    emitLine(String("{\"t\":\"ack\",\"cmd\":\"dump\",\"count\":") + count + "}");
+    return;
+  }
   emitLine("{\"t\":\"err\",\"msg\":\"unknown cmd\"}");
 }
 
@@ -279,6 +359,10 @@ void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(false);
   delay(100);
+
+  if (!LittleFS.begin()) {
+    Serial.println("{\"t\":\"err\",\"msg\":\"littlefs begin failed\"}");
+  }
 
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);

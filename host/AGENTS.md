@@ -9,9 +9,12 @@ wall sketch.
 ## Ownership
 
 - `host/wifi_map/` - the `wifi_map` package:
-  `records`, `sessions`, `capture`, `point`, `analyze`, `geometry`, `simulate`,
-  `report` (batch), and `stream`, `server`, `index`, `features`, `envmap`,
-  `mqtt` (live).
+  `records`, `sessions`, `capture`, `survey`, `point`, `analyze`, `geometry`,
+  `occupancy`, `simulate`, `report` (batch), and `stream`, `server`, `index`,
+  `features`, `envmap`, `mqtt` (live). New data-quality functions:
+  `features.sliding_median_filter`, `features.mad_filter`,
+  `index.spearman_distance`, `index.exponential_transform`,
+  `index.power_transform`, `sessions.filter_strongest`.
 - `host/tests/` - pytest suite.
 - `host/requirements.txt`, `host/conftest.py`.
 
@@ -33,6 +36,11 @@ wall sketch.
   `PYTHONPATH=host`.
 - Without a board, exercise the pipeline with `wifi_map.simulate` then
   `wifi_map.analyze`.
+- New analyze CLI options: `--distance {euclidean,spearman}`, `--median-filter`,
+  `--keep-aps N`, `--occupancy` (with `--resolution`).
+- `wifi_map.occupancy` is a standalone CLI for the Phase 3 P2 Geometry sparse
+  inverse k-visibility grid: `--session`, `--ref BSSID,X,Y`, `--out`.
+- New server CLI options: `--motion-gate FLOAT` (motion score threshold for gating position updates, default 2.0), `--smooth-alpha FLOAT` (exponential smoothing factor for position, default 0.3), `--window INT` (sliding window size for median fingerprint, default 5).
 
 ## Verification
 

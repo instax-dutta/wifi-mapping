@@ -14,6 +14,7 @@ import json
 import queue
 import threading
 import time
+from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -32,7 +33,8 @@ WEB_DIR = Path(__file__).resolve().parents[2] / "web"
 
 class LiveState:
     def __init__(self, session: Optional[str] = None, history_len: int = 30,
-                 mqtt_host: Optional[str] = None):
+                 mqtt_host: Optional[str] = None, motion_gate_threshold: float = 2.0,
+                 smooth_alpha: float = 0.3, window: int = 5):
         self.lock = threading.Lock()
         self.subs: set = set()
         self.index = FingerprintIndex()
@@ -41,6 +43,14 @@ class LiveState:
         self.latest_aps: List[Dict[str, Any]] = []
         self.position: Optional[Dict[str, float]] = None
         self.pos_err: Optional[float] = None
+        self.position_window = deque(maxlen=history_len)
+        self.position_smooth: Optional[Dict[str, float]] = None
+        self.position_raw: Optional[Dict[str, float]] = None
+        self.motion_gated = False
+        self.motion_gate_threshold = motion_gate_threshold
+        self.smooth_alpha = smooth_alpha
+        self.window = window
+        self.scan_window = deque(maxlen=window)
         self.baseline = envmap.EnvBaseline()
         self.env: Dict[str, Any] = {"score": 0.0, "changed": False, "per_ap": {}}
         self.motion: Dict[str, Any] = {"score": 0.0, "moving": False, "level": "low"}
@@ -90,20 +100,39 @@ class LiveState:
                                 "channel": a.channel} for a in frame.aps]
             if not self.bssids:
                 self.bssids = sorted({a.bssid for a in frame.aps})
+            raw_pos = None
+            err = None
             if self.bssids:
                 v = vectorize(frame.aps, self.bssids)
                 self.history.append(v.tolist())
                 del self.history[:-self.history_len]
-            if self.index.X.shape[0]:
-                xy, err = self.index.query(vectorize(frame.aps, self.index.bssids))
-                if np.isfinite(xy).all():
-                    self.position = {"x": float(xy[0]), "y": float(xy[1])}
-                    self.pos_err = err
+                self.scan_window.append(v)
+                # sliding-window median fingerprint -> kNN -> raw position
+                if len(self.scan_window) >= self.window and self.index.X.shape[0]:
+                    median_fp = np.median(np.stack(list(self.scan_window)), axis=0)
+                    xy, err = self.index.query(median_fp)
+                    if np.isfinite(xy).all():
+                        raw_pos = {"x": float(xy[0]), "y": float(xy[1])}
             if self.history:
                 score = features.motion_score(self.history)
                 self.motion = {"score": score, "moving": features.presence(self.history),
                                "level": features.motion_level(score)}
             self.env = self.baseline.drift(self._stats(frame.aps))
+            # motion gate + exponential smoothing
+            motion_gated = False
+            if raw_pos is not None:
+                if self.position_smooth is None:
+                    self.position_smooth = raw_pos
+                elif self.motion["score"] < self.motion_gate_threshold:
+                    motion_gated = True  # hold previous smoothed position
+                else:
+                    self.position_smooth = features.ema_smooth(
+                        self.position_smooth, raw_pos, self.smooth_alpha)
+                self.position_window.append(raw_pos)
+            self.position_raw = raw_pos
+            self.position = self.position_smooth
+            self.pos_err = err
+            self.motion_gated = motion_gated
             snap = self.snapshot_locked()
         self._publish(snap)
 
@@ -115,6 +144,8 @@ class LiveState:
         return {"ts": time.time(), "source": self.source, "connected": self.connected,
                 "samples": self.samples, "aps": self.latest_aps,
                 "position": self.position, "pos_err": self.pos_err,
+                "position_raw": self.position_raw, "position_smooth": self.position_smooth,
+                "motion_gated": self.motion_gated,
                 "motion": self.motion, "env": self.env, "bssids": self.bssids,
                 "extent": extent}
 
@@ -212,9 +243,17 @@ def main(argv=None) -> int:
     p.add_argument("--port", type=int, default=3000)
     p.add_argument("--mqtt", default=None, help="MQTT broker host (optional)")
     p.add_argument("--history", type=int, default=30)
+    p.add_argument("--motion-gate", type=float, default=2.0,
+                   help="motion gating threshold (dB^2); freeze smoothed position below this")
+    p.add_argument("--smooth-alpha", type=float, default=0.3,
+                   help="exponential smoothing alpha for position")
+    p.add_argument("--window", type=int, default=5,
+                   help="sliding window for median fingerprint before kNN")
     args = p.parse_args(argv)
 
-    state = LiveState(session=args.session, history_len=args.history, mqtt_host=args.mqtt)
+    state = LiveState(session=args.session, history_len=args.history, mqtt_host=args.mqtt,
+                      motion_gate_threshold=args.motion_gate, smooth_alpha=args.smooth_alpha,
+                      window=args.window)
     state.source = args.source
     q = FrameQueue()
     src = UDPSource(q, port=args.udp_port) if args.source == "udp" else SerialSource(q, args.serial)

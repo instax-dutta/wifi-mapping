@@ -22,10 +22,13 @@ line-delimited JSON over serial.
 - The promiscuous callback is IRAM and short: it only pushes to the ring buffer,
   never prints.
 - No long `delay()`; the loop stays responsive to serial commands.
+- Flash logging appends every emitted scan/sniff frame to `/scan.log` on
+  LittleFS (256 KB cap); on overflow logging stops and an `err` frame is emitted.
 
 ## Work Guidance
 
 - Compile before flashing: `arduino-cli compile -b esp8266:esp8266:nodemcuv2 firmware/wifi_mapper`.
+- New commands: `log on`, `log off`, `log clear`, `log status`, `dump`.
 - Flash with the project venv's esptool, not arduino-cli's bundled esptool v3.0,
   which fails on this macOS (see `tools/AGENTS.md`).
 - Keep JSON frames under ~1 KB and never print partial lines.

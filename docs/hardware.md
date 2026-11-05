@@ -29,6 +29,22 @@ LoLin "V3" board usually ships a CH340 bridge, so a CP2102 strongly implies the
 Amica/V2 layout. Either way the FQBN `esp8266:esp8266:nodemcuv2` with 4 MB flash
 is correct. Default tool options: `xtal=80`, `baud=115200`, `eesz=4M2M`.
 
+## Physical (model spec, not measured here)
+
+Reference dimensions for the NodeMCU v2 (Amica) / ESP-12E board class:
+
+| Part | Size |
+| --- | --- |
+| PCB | 48.3 mm x 25.4 mm |
+| Pin header rows | 22.86 mm (0.9 in) apart, 15 pins per side, 2.54 mm pitch |
+| Overall length with headers | ~49 mm |
+| Height (PCB + micro-USB + pin tails) | ~13 mm |
+| Module (ESP-12E/F) | 24 mm x 16 mm |
+| USB connector | micro-USB |
+
+Confirm by measuring the width: ~25.4 mm is the v2 (this board); ~31 mm is the
+LoLin v3.
+
 ## Radio capabilities that matter for mapping
 
 | Capability | Present? | Consequence for this project |

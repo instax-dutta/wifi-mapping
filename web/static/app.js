@@ -75,15 +75,22 @@
       map.appendChild(el("polyline", { points: pts, class: "trail" }));
     }
 
-    // position
-    if (state.position) {
-      const [px, py] = project(state.position.x, state.position.y, d);
+    // position: smoothed = main marker, raw = faint point
+    const spos = state.position_smooth || state.position;
+    if (spos) {
+      const [px, py] = project(spos.x, spos.y, d);
       map.appendChild(el("circle", { cx: px, cy: py, r: 16, class: "pos-halo" }));
       map.appendChild(el("circle", { cx: px, cy: py, r: 7, class: "pos-core" }));
       map.appendChild(el("circle", { cx: px, cy: py, r: 12, class: "pos-ring" }));
       const t = el("text", { x: px + 16, y: py + 22, class: "pos-label" });
-      t.textContent = state.position.x.toFixed(2) + ", " + state.position.y.toFixed(2);
+      t.textContent = spos.x.toFixed(2) + ", " + spos.y.toFixed(2);
       map.appendChild(t);
+    }
+    const raw = state.position_raw;
+    if (raw && (!spos || Math.hypot(raw.x - spos.x, raw.y - spos.y) > 1e-4)) {
+      const [rx, ry] = project(raw.x, raw.y, d);
+      map.appendChild(el("circle", { cx: rx, cy: ry, r: 4, class: "pos-raw",
+        fill: "var(--accent)", opacity: "0.4" }));
     }
   }
 
@@ -113,9 +120,10 @@
   }
 
   function render(state) {
-    // trail
-    if (state.position) {
-      const p = state.position;
+    // trail (smoothed position)
+    const pos = state.position_smooth || state.position;
+    if (pos) {
+      const p = pos;
       const last = trail[trail.length - 1];
       if (!last || Math.hypot(last[0] - p.x, last[1] - p.y) > 1e-4) {
         trail.push([p.x, p.y]);

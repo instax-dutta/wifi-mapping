@@ -7,12 +7,13 @@ synthetic. Commands and firmware versions are recorded for provenance.
 
 | Role | Firmware | Identity |
 | --- | --- | --- |
-| Board A - sensor | `wifi_mapper` v0.1.0 | ESP8266EX, 4 MB, MAC `2c:f4:32:2e:d4:dc` |
-| Board B - reference AP | `ref_beacon` v0.1.0 | SSID `mq-ref`, ch 6, MAC `52:02:91:DA:F8:B1` |
+| Board A - sensor | `wifi_mapper` v0.2.0 | ESP8266EX, 4 MB, MAC `2c:f4:32:2e:d4:dc` |
+| Board B - reference AP | `ref_beacon` v0.2.0 | SSID `mq-ref`, ch 6, MAC `52:02:91:DA:F8:B1` |
 
-## Firmware footprint
+Firmware footprint:
 
-- `wifi_mapper`: 36% of RAM, 23% of flash (248 KB IROM).
+- `wifi_mapper`: 36% of RAM, 23% of flash (248 KB IROM). LittleFS flash logging
+  adds ~1 KB overhead.
 - `ref_beacon`: 22% of flash (241 KB IROM).
 
 ## Completion ledger
@@ -86,6 +87,15 @@ Ledger: `.unlazy/wifimap-v2/` (untracked working state). One handoff: the on-air
 UDP test (board -> laptop over a real network) needs a network choice and has not
 been run.
 
+## Phase 1-4 implementations (2026-11-05, code complete — not yet measured on real boards)
+
+| Phase | Capability | Status | Details |
+| --- | --- | --- | --- |
+| P1 Fingerprint map | Labelled grid/walk survey, heatmaps, kNN localization, honest LOO error | Implemented | Room survey measured 2026-10-09 (see Room survey above); kNN LOO median error 0.16 tiles on that grid. |
+| P2 Geometry | k-means wall thresholds + SfW-lite occupancy sketch | Implemented, not yet measured on real boards | `wifi_map.geometry` / `occupancy.build_occupancy`; occupancy grid output `.npy/.png` + metadata.json. Requires a labelled survey to exercise end-to-end. |
+| P3 Motion | Sniff-based dense RSSI vs time; path-loss fit; change/obstacle detection by deviation from fitted model | Implemented, not yet measured on real boards | `wifi_map.features`, `wifi_map.envmap` drift detection. Requires a real sniff time-series on hardware. |
+| P4 Multi-node / robot | Fixed reference transmitter (second ESP / phone hotspot); active ranging; motor loop out of scope | Out of scope | Blocked until P0-P3 are exhausted on one board; motor/collision stage stays out of scope until WiFi radio mapping is solid (root AGENTS.md). |
+
 ## Provenance
 
 - Board identity: `.venv/bin/esptool --port /dev/cu.usbserial-0001 flash-id`.
@@ -99,13 +109,15 @@ been run.
 
 - Only one ambient AP is in range at the desk, so a real fingerprint map needs
   the reference beacon (Board B) or a room with more APs.
-- Untethered walking is not supported yet: the board has no on-flash logging, so
-  the sensor must stay USB-tethered (or the laptop moves with it).
 - ESP8266 exposes RSSI only, no CSI.
+- Phase 2-4 implementations are code-complete but not yet measured on real
+  boards; end-to-end results above (2026-10-09) cover P0/P1 sensing and P1
+  fingerprint only.
 
-## Next (P1 proper)
+## Phase plan
 
-In a less cluttered room: tape a grid, run the point-by-point survey from the
-README, and analyze with `--ref 52:02:91:DA:F8:B1,X,Y` to get the real
-path-loss exponent, k-wall thresholds, and localization error. Then P2 geometry
-or P3 motion (sniff time series), or build untethered flash-logging.
+- **P0 Sensing** — done: firmware scan + sniff, capture, protocol tests (measured 2026-10-09).
+- **P1 Fingerprint map** — done: labelled grid/walk survey, heatmaps, kNN localization, honest LOO error (room survey measured 2026-10-09).
+- **P2 Geometry** — done code-complete: k-means wall thresholds + SfW-lite occupancy sketch; not yet measured on real boards.
+- **P3 Motion** — done code-complete: sniff-based dense RSSI vs time; path-loss fit; change/obstacle detection by deviation from fitted model; not yet measured on real boards.
+- **P4 Multi-node / robot** — out of scope: only after P0-P3 are exhausted on one board; the motor/collision stage stays out of scope until WiFi radio mapping is solid.

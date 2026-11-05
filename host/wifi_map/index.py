@@ -28,6 +28,60 @@ def vectorize(aps: Iterable, bssids: Sequence[str]) -> np.ndarray:
     return v
 
 
+def _rankdata(x: np.ndarray) -> np.ndarray:
+    """Average-ties rank of a 1-D array (1-based)."""
+    x = np.asarray(x, dtype=float)
+    order = np.argsort(x, kind="mergesort")
+    sorted_x = x[order]
+    ranks_sorted = np.empty(x.size, dtype=float)
+    i = 0
+    n = x.size
+    while i < n:
+        j = i
+        while j + 1 < n and sorted_x[j + 1] == sorted_x[i]:
+            j += 1
+        ranks_sorted[i:j + 1] = 0.5 * (i + j) + 1.0
+        i = j + 1
+    ranks = np.empty(x.size, dtype=float)
+    ranks[order] = ranks_sorted
+    return ranks
+
+
+def exponential_transform(v, alpha=0.1):
+    """exp(alpha * v): compresses strong-signal differences (UJI 2023).
+
+    Applied to RSSI vectors before distance computation so differences among
+    strong signals are penalized less than among weak ones."""
+    return np.exp(alpha * np.asarray(v, dtype=float))
+
+
+def power_transform(v, gamma=0.5):
+    """Sign-preserving power law |v|^gamma (UJI 2023)."""
+    v = np.asarray(v, dtype=float)
+    return np.sign(v) * np.abs(v) ** gamma
+
+
+def spearman_distance(a, b):
+    """1 - Spearman rank correlation between two RSSI vectors.
+
+    Positions where either value is MISSING_RSSI are excluded from ranking, so
+    non-detected APs do not distort the correlation (IEEE LSP 2016)."""
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    mask = (a != MISSING_RSSI) & (b != MISSING_RSSI)
+    if int(mask.sum()) < 2:
+        return 1.0
+    ra = _rankdata(a[mask])
+    rb = _rankdata(b[mask])
+    ra_c = ra - ra.mean()
+    rb_c = rb - rb.mean()
+    denom = np.sqrt(np.dot(ra_c, ra_c) * np.dot(rb_c, rb_c))
+    if denom == 0.0:
+        return 1.0
+    rho = float(np.dot(ra_c, rb_c) / denom)
+    return 1.0 - rho
+
+
 class FingerprintIndex:
     def __init__(self, k: int = 3, backend: str = "numpy"):
         self.k = k
@@ -54,21 +108,25 @@ class FingerprintIndex:
                 self._hnsw = None
         return self
 
-    def query(self, vec: np.ndarray) -> Tuple[np.ndarray, float]:
+    def query(self, vec: np.ndarray, distance: str = "euclidean") -> Tuple[np.ndarray, float]:
         """Return (xy_estimate, nearest_distance) for a query vector already in
-        training bssid order."""
+        training bssid order.
+
+        distance: "euclidean" (default, L2 norm) or "spearman". With
+        "spearman" the exponential transform is applied before computing
+        distances and the hnsw backend is ignored."""
         v = np.asarray(vec, dtype=float).reshape(1, -1)
         if self.X.shape[0] == 0:
             return np.array([np.nan, np.nan]), float("nan")
         k = min(self.k, self.X.shape[0])
-        if self._hnsw is not None:
-            labels, dists = self._hnsw.knn_query(v, k=k)
-            idxs = labels[0]
-            d = np.sqrt(dists[0])
+        if distance == "spearman":
+            vt = exponential_transform(v)
+            Xt = exponential_transform(self.X)
+            dist = np.array([spearman_distance(vt[0], x) for x in Xt])
         else:
             dist = np.linalg.norm(self.X - v, axis=1)
-            idxs = np.argsort(dist)[:k]
-            d = dist[idxs]
+        idxs = np.argsort(dist)[:k]
+        d = dist[idxs]
         w = 1.0 / (d + 1e-6)
         xy = np.sum(w[:, None] * self.pos[idxs], axis=0) / np.sum(w)
         return xy, float(d[0])

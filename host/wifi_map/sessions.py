@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -11,6 +12,12 @@ import numpy as np
 from .records import ScanFrame, SniffFrame, parse_line
 
 MISSING_RSSI = -100.0
+"""Sentinel RSSI for APs not detected in a scan (-100 dBm).
+
+Below the ESP8266's usable range, so a non-heard AP is reported as -100 dBm by
+the board firmware and stored here. It is intentionally tunable: if the
+firmware changes its missing-report value, update this constant; the distance
+and transform helpers in :mod:`wifi_map.index` treat MISSING_RSSI as missing."""
 
 
 def _jsonl_files(p: Path) -> List[Path]:
@@ -62,7 +69,6 @@ def load_session(path: str | Path) -> Dict[str, Any]:
             "path": str(p), "files": [str(f) for f in files]}
 
 
-
 def ap_table(scans: List[ScanFrame]) -> Tuple[List[str], np.ndarray, np.ndarray]:
     """Return (bssids, RSSI matrix [n_samples x n_aps], observed mask)."""
     bssids = sorted({ap.bssid for s in scans for ap in s.aps})
@@ -81,6 +87,21 @@ def labels(scans: List[ScanFrame]) -> Tuple[np.ndarray, np.ndarray, bool]:
     ys = np.array([s.y if s.y is not None else np.nan for s in scans], dtype=float)
     labeled = bool(np.isfinite(xs).any() and np.isfinite(ys).any())
     return xs, ys, labeled
+
+
+def filter_strongest(scans: List[ScanFrame], n: int = 6) -> List[ScanFrame]:
+    """Keep only the n strongest APs per scan; others become MISSING_RSSI.
+
+    Returns a new list of ScanFrames (input is not mutated). Each scan's AP
+    list is truncated to the n highest-RSSI APs, reducing dimensionality and
+    focusing localization on stable, strong APs."""
+    keep_n = max(1, int(n))
+    out: List[ScanFrame] = []
+    for s in scans:
+        keep = sorted(s.aps, key=lambda ap: ap.rssi, reverse=True)[:keep_n]
+        keep_bssids = {ap.bssid for ap in keep}
+        out.append(replace(s, aps=[ap for ap in s.aps if ap.bssid in keep_bssids]))
+    return out
 
 
 def ap_stats(scans: List[ScanFrame]) -> List[Dict[str, Any]]:
